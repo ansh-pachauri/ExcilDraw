@@ -35,32 +35,81 @@ app.post("/signup", async (req, res)=>{
     }
 })
 
-app.post("/signin", (req, res)=>{
+app.post("/signin", async(req, res)=>{
 
-    const data = SigninSchema.safeParse(req.body);
-    if(!data.success){
+    const parsedData = SigninSchema.safeParse(req.body);
+    if(!parsedData.success){
         res.status(400).json({message:"Invalid data"}); 
+        return;
     }
     
-    const userId =1;
-    const token = jwt.sign({userId}, JWT_SECRET);
+    try{
+        const user = await prismaClient.user.findFirst({
+            where:{
+                email: parsedData.data.username,
+                password: parsedData.data.password
+            }
+        })
+        if(!user){
+            res.status(401).json({message:"User is not authorized"});
+            return;
+        }
+        const token = jwt.sign({userId:user?.id}, JWT_SECRET);
 
     res.json({token});
-})
+    }catch(e){
+        res.status(401).json({message:"Invalid credentials"});
+    }
+    
+})  
 
-app.post("/room",middleware,  (req, res)=>{
+app.post("/room",middleware,async(req, res)=>{
     //db call
 
-    const data = CreateRoomSchema.safeParse(req.body);
-    if(!data.success){
+    const parsedData = CreateRoomSchema.safeParse(req.body);
+    if(!parsedData.success){
         res.status(400).json({message:"Invalid data"}); 
+        return;
     }
+    //@ts-ignore
+    const userId = req.userId;
+
+
+    try {
+         //@ts-ignore
+    const room = await prismaClient.room.create({
+        data:{
+            slug: parsedData.data.name,
+            adminId: userId
+        }
+    })
     res.json({
-        roomId : 123
+        roomId : room.id
     });
+    } catch (e) {
+        res.status(411).json({message:"Room  already exists"});
+    }
+    
     
 })
 
+//get route
+app.get("/chats/:roomId",middleware, async(req, res)=>{
+    const roomId = Number(req.params.roomId);
+    const messages = await prismaClient.chat.findMany({
+        where:{
+            roomId: roomId
+        },
+        orderBy:{
+            id:"desc"
+        },
+        take: 50
+    });
+
+    res.json({
+        messages
+    })
+})
 
 app.listen(3001, () => {
   console.log('Server is running on http://localhost:3001');
