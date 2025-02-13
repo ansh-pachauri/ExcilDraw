@@ -7,7 +7,7 @@ async function getRoomId(slug:string){
     return response.data.room.id;
 }
 
-export default async function ChatRoom1({
+export default async function RoomPage({
     params
 }:{
     params:{

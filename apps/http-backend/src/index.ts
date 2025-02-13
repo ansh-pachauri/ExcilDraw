@@ -94,8 +94,9 @@ app.post("/room",middleware,async(req, res)=>{
 })
 
 //get route
-app.get("/chats/:roomId",middleware, async(req, res)=>{
-    const roomId = Number(req.params.roomId);
+app.get("/chats/:roomId", async(req, res)=>{
+    try{
+        const roomId = Number(req.params.roomId);
     const messages = await prismaClient.chat.findMany({
         where:{
             roomId: roomId
@@ -109,10 +110,14 @@ app.get("/chats/:roomId",middleware, async(req, res)=>{
     res.json({
         messages
     })
+    }catch(e){
+        res.status(411).json({message:"Invalid room id"});
+    }
+    
 })
 
 //get route for the slug
-app.get("/room/:slug",middleware, async(req, res)=>{
+app.get("/room/:slug", async(req, res)=>{
     const slug = req.params.slug;
     const room = await prismaClient.room.findFirst({
         where:{
