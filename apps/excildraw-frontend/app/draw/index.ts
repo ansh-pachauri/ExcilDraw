@@ -1,3 +1,6 @@
+import axios from 'axios';
+import { BACKEND_URL } from '@/config';
+
 type shapes = {
     type: "rect",
     x: number;
@@ -11,7 +14,7 @@ type shapes = {
     radius: number;
 }
 
-async export function initDraw(canvas: HTMLCanvasElement, roomId: string) {
+ export async function initDraw(canvas: HTMLCanvasElement, roomId: string) {
     const ctx = canvas.getContext('2d');
 
     let existingShapes: shapes[] = await getExistingShapes(roomId);
@@ -79,13 +82,15 @@ function cleaerCanvas(existingShapes: shapes[], canvas: HTMLCanvasElement, ctx: 
 
 
 async function getExistingShapes(roomId: string) {
-    const response   =  axios.get(`${BACKEND_URL}/chats/${roomId}`);
+    const response   =await  axios.get(`${BACKEND_URL}/chats/${roomId}`);
     const message = response.data.message;
 
-    const shapes = message.map((x: message:string))=>{
-        const messageData= JSON.parse(x.message);
+    const shapes = message.map((x: {message: string}) => {
+        const messageData = JSON.parse(x.message);
         return messageData;
-    }
-
+    });
     return shapes;
+
+    
+
 }

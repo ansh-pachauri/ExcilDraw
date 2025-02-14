@@ -3,7 +3,7 @@ import { initDraw } from "@/app/draw";
 import { useEffect, useRef, useState } from "react";
 import { WS_URL } from "../config";
 
-export function Canvas({roomId}: {roomId:string}){
+export default function Canvas({roomId}: {roomId:string}){
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [socket, setSocket] =useState<WebSocket>();
 
@@ -24,7 +24,7 @@ export function Canvas({roomId}: {roomId:string}){
     },[canvasRef])
 
     if(!socket){
-        return <div>Connecting to server...</div>;
+        return <div className="text-white">Connecting to server...</div>;
     }
     return <div>
         <canvas ref={canvasRef} width={2000} height={1000}></canvas>
