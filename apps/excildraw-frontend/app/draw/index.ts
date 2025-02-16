@@ -14,12 +14,20 @@ type shapes = {
     radius: number;
 }
 
- export async function initDraw(canvas: HTMLCanvasElement, roomId: string) {
+ export async function initDraw(canvas: HTMLCanvasElement, roomId: string, socket:WebSocket) {
     const ctx = canvas.getContext('2d');
 
     let existingShapes: shapes[] = await getExistingShapes(roomId);
     if (!ctx) {
         return;
+    }
+
+    socket.onmessage =  (event) => {
+        const message = JSON.parse(event.data);
+        if(message.type ==="chat"){
+            existingShapes.push(message.data);
+            cleaerCanvas(existingShapes, canvas, ctx);
+        }
     }
 
     cleaerCanvas(existingShapes, canvas, ctx);
@@ -38,14 +46,20 @@ type shapes = {
         clicked = false;
         const width = e.clientX - startX;
         const height = e.clientY - startY;
-
-        existingShapes.push({
+        const shape: shapes  ={
             type: "rect",
             x: startX,
             y: startY,
             height,
             width
-        })
+        }
+        existingShapes.push(shape);
+        
+        //send it to backend
+        socket.send(JSON.stringify({
+            type: "chat",
+            message: JSON.stringify(shape)
+        }))
     })
 
     canvas.addEventListener('mousemove', (e) => {
@@ -82,15 +96,30 @@ function cleaerCanvas(existingShapes: shapes[], canvas: HTMLCanvasElement, ctx: 
 
 
 async function getExistingShapes(roomId: string) {
-    const response   =await  axios.get(`${BACKEND_URL}/chats/${roomId}`);
-    const message = response.data.message;
-
-    const shapes = message.map((x: {message: string}) => {
-        const messageData = JSON.parse(x.message);
-        return messageData;
-    });
-    return shapes;
-
-    
-
+    try {
+        const response = await axios.get(`${BACKEND_URL}/chats/${roomId}`);
+        console.log("response:", response);
+        
+        if (!response.data || !response.data.message) {
+            console.log("No messages found, returning empty array");
+            return [];
+        }
+        
+        const message = response.data.message;
+        console.log("messages:", message);
+        
+        const shapes = Array.isArray(message) ? message.map((x: {message: string}) => {
+            try {
+                return JSON.parse(x.message);
+            } catch (error) {
+                console.error('Failed to parse message:', error);
+                return null;
+            }
+        }).filter(shape => shape !== null) : [];
+        
+        return shapes;
+    } catch (error) {
+        console.error("Error fetching shapes:", error);
+        return []; // Return empty array if request fails
+    }
 }
